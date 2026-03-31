@@ -82,3 +82,18 @@ output "ami_id" {
   description = "AMI ID used for instances"
   value       = data.aws_ami.amazon_linux.id
 }
+
+output "app_data_volume_id" {
+  description = "ID of the app data EBS volume"
+  value       = aws_ebs_volume.app_data.id
+}
+
+output "app_data_volume_arn" {
+  description = "ARN of the app data EBS volume"
+  value       = aws_ebs_volume.app_data.arn
+}
+
+output "snapshot_id" {
+  description = "ID of the data volume snapshot"
+  value       = aws_ebs_snapshot.app_data_backup.id
+}

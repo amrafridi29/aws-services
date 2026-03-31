@@ -222,3 +222,50 @@ resource "aws_vpc_security_group_egress_rule" "bastion_out" {
   cidr_ipv4         = "0.0.0.0/0"
   description       = "Allow all outbound traffic from bastion host"
 }
+
+resource "aws_instance" "bastion" {
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = var.instance_type
+  key_name               = var.key_pair_name
+  vpc_security_group_ids = [aws_security_group.bastion.id]
+  subnet_id              = aws_subnet.public[0].id
+  tags = {
+    Name = "${var.project_name}-bastion"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "app_ssh_from_bastion" {
+  security_group_id            = aws_security_group.app.id
+  referenced_security_group_id = aws_security_group.bastion.id
+  from_port                    = 22
+  to_port                      = 22
+  ip_protocol                  = "tcp"
+  description                  = "Allow SSH access from bastion host to app servers"
+}
+
+resource "aws_instance" "app" {
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = var.instance_type
+  key_name               = var.key_pair_name
+  subnet_id              = aws_subnet.private[0].id
+  vpc_security_group_ids = [aws_security_group.app.id]
+
+  user_data = <<-EOF
+    #!/bin/bash
+    yum update -y
+    yum install -y httpd
+    systemctl start httpd
+    systemctl enable httpd
+    echo "<h1>Hello from ${var.project_name} app server!</h1>" > /var/www/html/index.html
+  EOF
+
+  root_block_device {
+    volume_size           = 20
+    volume_type           = "gp3"
+    encrypted             = true
+    delete_on_termination = true
+  }
+  tags = {
+    Name = "${var.project_name}-app-server"
+  }
+}

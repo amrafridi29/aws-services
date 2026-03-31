@@ -67,3 +67,18 @@ output "db_security_group_id" {
   description = "Security Group ID for databases"
   value       = aws_security_group.db.id
 }
+
+output "bastion_public_ip" {
+  description = "Public IP of the bastion host"
+  value       = aws_instance.bastion.public_ip
+}
+
+output "app_server_private_ip" {
+  description = "Private IP of the app server"
+  value       = aws_instance.app.private_ip
+}
+
+output "ami_id" {
+  description = "AMI ID used for instances"
+  value       = data.aws_ami.amazon_linux.id
+}

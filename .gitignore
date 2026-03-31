@@ -52,3 +52,4 @@ plan.out
 # Optional: macOS / Linux / Windows junk
 .DS_Store
 Thumbs.db
+*.pem

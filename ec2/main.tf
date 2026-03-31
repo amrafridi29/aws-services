@@ -264,8 +264,54 @@ resource "aws_instance" "app" {
     volume_type           = "gp3"
     encrypted             = true
     delete_on_termination = true
+    tags = {
+      Name = "${var.project_name}-root-volume"
+    }
   }
   tags = {
     Name = "${var.project_name}-app-server"
   }
 }
+
+# Create a standalone EBS volume for application data
+resource "aws_ebs_volume" "app_data" {
+  availability_zone = aws_subnet.private[0].availability_zone
+  size              = 50
+  type              = "gp3"
+  encrypted         = true
+  iops              = 3000
+  throughput        = 125
+
+  tags = {
+    Name = "${var.project_name}-app-data-volume"
+  }
+}
+
+# Attach the data volume to the app server
+resource "aws_volume_attachment" "app_data" {
+  device_name = "/dev/sdf"
+  volume_id   = aws_ebs_volume.app_data.id
+  instance_id = aws_instance.app.id
+}
+
+# Take a snapshot of the data volume
+resource "aws_ebs_snapshot" "app_data_backup" {
+  volume_id   = aws_ebs_volume.app_data.id
+  description = "Backup snapshot of app data volume"
+  tags = {
+    Name = "${var.project_name}-app-data-backup"
+  }
+}
+
+# Create a new volume from a snapshot (for restore or clone)
+# resource "aws_ebs_volume" "restored" {
+#   availability_zone = aws_subnet.private[0].availability_zone
+#   snapshot_id       = aws_ebs_snapshot.app_data_backup.id
+#   type              = "gp3"
+#   encrypted         = true
+
+#   tags = {
+#     Name      = "${var.project_name}-restored-volume"
+#     ManagedBy = "Terraform"
+#   }
+# }

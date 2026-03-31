@@ -196,3 +196,29 @@ resource "aws_vpc_security_group_egress_rule" "db_all_out" {
   ip_protocol       = "-1"
   description       = "Allow all outbound traffic from database servers"
 }
+
+resource "aws_security_group" "bastion" {
+  name        = "${var.project_name}-bastion-sg"
+  description = "Security group for bastion host/jump server"
+  vpc_id      = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.project_name}-bastion-sg"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "bastion_ssh" {
+  security_group_id = aws_security_group.bastion.id
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+  description       = "Allow SSH access to bastion host from internet"
+}
+
+resource "aws_vpc_security_group_egress_rule" "bastion_out" {
+  security_group_id = aws_security_group.bastion.id
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+  description       = "Allow all outbound traffic from bastion host"
+}

@@ -58,6 +58,11 @@ output "app_security_group_id" {
   value       = aws_security_group.app.id
 }
 
+output "bastion_security_group_id" {
+  description = "Security Group ID for bastion host"
+  value       = aws_security_group.bastion.id
+}
+
 output "db_security_group_id" {
   description = "Security Group ID for databases"
   value       = aws_security_group.db.id

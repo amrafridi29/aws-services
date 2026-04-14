@@ -196,3 +196,89 @@ resource "aws_vpc_security_group_egress_rule" "db_all_out" {
   ip_protocol       = "-1"
   description       = "Allow all outbound traffic from database servers"
 }
+
+resource "aws_db_subnet_group" "main" {
+  name        = "${var.project_name}-db-subnet-group"
+  description = "Subnet group for RDS spans multiple AZs"
+  subnet_ids  = aws_subnet.private[*].id
+
+  tags = {
+    Name = "${var.project_name}-db-subnet-group"
+  }
+}
+
+resource "random_password" "db" {
+  length           = 32
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+resource "aws_ssm_parameter" "db_password" {
+  name        = "/${var.project_name}/db/password"
+  type        = "SecureString"
+  value       = random_password.db.result
+  description = "RDS master password for ${var.project_name}"
+}
+
+resource "aws_db_parameter_group" "main" {
+  name        = "${var.project_name}-pg15"
+  family      = "postgres15"
+  description = "Custom parameter group for PostgreSQL 15"
+
+  parameter {
+    name  = "log_connections"
+    value = "1"
+  }
+
+  parameter {
+    name  = "log_disconnections"
+    value = "1"
+  }
+
+  parameter {
+    name  = "log_min_duration_statement"
+    value = "1000" # log queries slower than 1 second
+  }
+
+  tags = {
+    Name = "${var.project_name}-pg15"
+  }
+}
+
+resource "aws_db_instance" "main" {
+  identifier     = "${var.project_name}-db"
+  engine         = "postgres"
+  engine_version = "15"
+  instance_class = var.db_instance_class
+
+  db_name  = var.db_name
+  username = var.db_username
+  password = random_password.db.result
+
+  allocated_storage     = var.db_allocated_storage
+  max_allocated_storage = var.db_max_allocated_storage
+  storage_type          = "gp3"
+  storage_encrypted     = true
+
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.db.id]
+  parameter_group_name   = aws_db_parameter_group.main.name
+
+  multi_az            = true
+  publicly_accessible = false
+  deletion_protection = false
+
+  backup_retention_period = 7
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "Mon:04:00-Mon:05:00"
+
+  skip_final_snapshot       = false
+  final_snapshot_identifier = "${var.project_name}-db-final-snapshot"
+
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
+
+  tags = {
+    Name      = "${var.project_name}-db"
+    ManagedBy = "Terraform"
+  }
+}

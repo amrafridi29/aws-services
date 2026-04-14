@@ -282,3 +282,43 @@ resource "aws_db_instance" "main" {
     ManagedBy = "Terraform"
   }
 }
+
+# With backup_retention_period = 7, 
+# you can restore your database to any point in the last 7 days — down to the second. 
+# This is invaluable when someone accidentally deletes production data.
+# resource "aws_db_instance" "restored" {
+#   identifier     = "${var.project_name}-db-restored"
+#   instance_class = var.db_instance_class
+
+#   restore_to_point_in_time {
+#     source_db_instance_identifier = aws_db_instance.main.identifier
+#     restore_time                  = "2024-01-15T03:00:00Z"
+#     use_latest_restorable_time    = false
+#   }
+
+#   db_subnet_group_name   = aws_db_subnet_group.main.name
+#   vpc_security_group_ids = [aws_security_group.db.id]
+#   skip_final_snapshot    = true
+# }
+
+# Adding a Read Replica
+# For high-read workloads, add a read replica — a separate instance that handles SELECT queries:
+
+# resource "aws_db_instance" "read_replica" {
+#   identifier          = "${var.project_name}-db-replica"
+#   instance_class      = var.db_instance_class
+#   replicate_source_db = aws_db_instance.main.identifier
+
+#   # No db_name, username, password, subnet_group, parameter_group needed
+#   # These are inherited from the source
+
+#   vpc_security_group_ids = [aws_security_group.db.id]
+#   storage_encrypted      = true
+#   publicly_accessible    = false
+#   skip_final_snapshot    = true
+
+#   tags = {
+#     Name      = "${var.project_name}-read-replica"
+#     ManagedBy = "Terraform"
+#   }
+# }
